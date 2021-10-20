@@ -1,0 +1,68 @@
+const num: int :: 60000
+func main()
+	var handle: file@Reader :: file@makeReader("res/start.txt")
+	var src: []char :: handle.readStr()
+	do handle.fin()
+	var mem: []int :: #[@num]int
+	var p: int :: 0
+	var pt: int :: 0
+	while lp(pt < ^src)
+		switch(src[pt])
+		case '>'
+			do p :+ 1
+			if(p >= @num)
+				ret
+			end if
+		case '<'
+			do p :- 1
+			if(p < 0)
+				ret
+			end if
+		case '+'
+			do mem[p] :+ 1
+		case '-'
+			do mem[p] :- 1
+		case '.'
+			do cui@print('A'.offset(-65 + mem[p]).toStr())
+		case '['
+			if(mem[p] = 0)
+				var m: int :: 0
+				while lpp(true)
+					if(pt >= ^src)
+						ret
+					end if
+					if(src[pt] = '[')
+						do m :+ 1
+					end if
+					if(src[pt] = ']')
+						do m :- 1
+					end if
+					if(m = 0)
+						break lpp
+					end if
+					do pt :+ 1
+				end while
+			end if
+		case ']'
+			if(mem[p] <> 0)
+				var m: int :: 0
+				while lpp(true)
+					if(pt < 0)
+						ret
+					end if
+					if(src[pt] = ']')
+						do m :+ 1
+					end if
+					if(src[pt] = '[')
+						do m :- 1
+					end if
+					if(m = 0)
+						break lpp
+					end if
+					do pt :- 1
+				end while
+			end if
+		end switch
+		do pt :+ 1
+	end while
+end func
