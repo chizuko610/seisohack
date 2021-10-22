@@ -1,67 +1,146 @@
-const num: int :: 60000
+const num: int :: 5000
+var drawMain: wnd@Draw
 func main()
+	var gra: dict<int, draw@Tex> :: #dict<int, draw@Tex>
+	var snd: dict<int, snd@Snd> :: #dict<int, snd@Snd>
+	do ogg@init()
+	var wndMain: wnd@Wnd :: wnd@makeWnd(null, %fix, 1280, 720, "SeisoHack")
+	do @drawMain :: wnd@makeDraw(wndMain, 0, 0, 1280, 720, %fix, %fix, false)
+	do wndMain.onActivate :: pop
+	func pop(wnd: wnd@WndBase, a: bool, b: bool)
+		if(a = true & b = false)
+			do @drawMain.focus()
+		end if
+	end func
+	;do draw@clearColor(0xFF000000)
+	;do draw@autoClear(false)
+	do draw@sampler(%point)
+	do @drawMain.focus()
+	
 	var handle: file@Reader :: file@makeReader("res/start.txt")
-	var src: []char :: handle.readStr()
+	do handle.delimiter("")
+	var src: []char :: handle.readStr().replace("\n", "").replace("\t", "")
 	do handle.fin()
-	var mem: []int :: #[@num]int
-	var p: int :: 0
+	
+	var jumpPos: []int :: #[^src]int
+	for n(0, ^src - 1)
+		if(src[n] = '[')
+			var pos: int :: n
+			var m: int :: 0
+			while lpp(true)
+				if(pt >= ^src)
+					ret
+				end if
+				if(src[pos] = '[')
+					do m :+ 1
+				end if
+				if(src[pos] = ']')
+					do m :- 1
+				end if
+				if(m = 0)
+					do jumpPos[n] :: pos
+					break lpp
+				end if
+				do pos :+ 1
+			end while
+		elif(src[n] = ']')
+			var pos: int :: n
+			var m: int :: 0
+			while lpp(true)
+				if(pt < 0)
+					ret
+				end if
+				if(src[pos] = '[')
+					do m :+ 1
+				end if
+				if(src[pos] = ']')
+					do m :- 1
+				end if
+				if(m = 0)
+					do jumpPos[n] :: pos
+					break lpp
+				end if
+				do pos :- 1
+			end while
+		end if
+	end for
+	var mem: [][]int :: #[@num, @num]int
+	var px: int :: 0
+	var py: int :: 0
 	var pt: int :: 0
 	while lp(pt < ^src)
+		if(wnd@act() = false)
+			ret
+		end if
 		switch(src[pt])
 		case '>'
-			do p :+ 1
-			if(p >= @num)
+			do px :+ 1
+			if(px >= @num)
 				ret
 			end if
 		case '<'
-			do p :- 1
-			if(p < 0)
+			do px :- 1
+			if(px < 0)
+				ret
+			end if
+		case 'v'
+			do py :+ 1
+			if(py >= @num)
+				ret
+			end if
+		case '^'
+			do py :- 1
+			if(py < 0)
 				ret
 			end if
 		case '+'
-			do mem[p] :+ 1
+			do mem[px][py] :+ 1
 		case '-'
-			do mem[p] :- 1
+			do mem[px][py] :- 1
 		case '.'
-			do cui@print('A'.offset(-65 + mem[p]).toStr())
+			do draw@render(0)
+			do lib@sleep(12)
+
+			;do draw@render(60)
+			;do cui@print("\{mem[px][py]}")
+		case ','
+			var key: []input@PadBtn :: [%down $ input@PadBtn, %up, %left, %right, %a, %b, %c, %d, %e, %f]
+			do mem[px][py] :: input@pad(0, key[mem[px][py]])
 		case '['
-			if(mem[p] = 0)
-				var m: int :: 0
-				while lpp(true)
-					if(pt >= ^src)
-						ret
-					end if
-					if(src[pt] = '[')
-						do m :+ 1
-					end if
-					if(src[pt] = ']')
-						do m :- 1
-					end if
-					if(m = 0)
-						break lpp
-					end if
-					do pt :+ 1
-				end while
+			if(mem[px][py] = 0)
+				do pt :: jumpPos[pt] - 1
 			end if
 		case ']'
-			if(mem[p] <> 0)
-				var m: int :: 0
-				while lpp(true)
-					if(pt < 0)
-						ret
-					end if
-					if(src[pt] = ']')
-						do m :+ 1
-					end if
-					if(src[pt] = '[')
-						do m :- 1
-					end if
-					if(m = 0)
-						break lpp
-					end if
-					do pt :- 1
-				end while
+			do pt :: jumpPos[pt]
+		case 'e'
+			ret
+		case 'o'
+			if(mem[px][py] = 0)
+				do bgm@stop()
+			else
+				do bgm@play("res/mus/\{mem[px][py]}.ogg", 0.0)
 			end if
+		case 'p'
+			var o: draw@Tex :: gra.get(mem[px][py], &)
+			do o.draw(mem[px + 1][py] $ float, mem[px + 2][py] $ float, 0.0, 0.0, o.imgWidth() $ float, o.imgHeight() $ float, draw@white)
+		case 'P'
+			do gra.add(mem[px][py], draw@makeTex("res/img/\{mem[px][py]}.png"))
+		case 's'
+			var o: snd@Snd :: snd.get(mem[px][py], &)
+			do o.setPos(0.0)
+			do o.play()
+		case 'S'
+			do snd.add(mem[px][py], snd@makeSnd("res/img/\{mem[px][py]}.wav"))
+		case 'r'
+			do px :: 0
+			do py :: 0
+		case 't'
+			do mem[px][py] :+ 10
+		case 'h'
+			do mem[px][py] :+ 100
+		case 'z'
+			do mem[px][py] :: 0
+		default
 		end switch
 		do pt :+ 1
 	end while
