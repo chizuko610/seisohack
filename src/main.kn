@@ -19,22 +19,32 @@ func main()
 	
 	var handle: file@Reader :: file@makeReader("res/start.txt")
 	do handle.delimiter("")
-	var src: []char :: handle.readStr().replace("\n", "").replace("\t", "")
+	var srcc: []char :: handle.readStr().replace("\n", "").replace("\t", "")
 	do handle.fin()
 	
+	var src: [][]char
+	var lsrc: list<[]char> :: #list<[]char>
+	for n(0, ^srcc - 1)
+		if("+-[]><v^.,ceopPosSrtThHzgG".findStr(srcc[n].toStr(), -1) > -1)
+			do lsrc.add(srcc[n].toStr())
+		end if
+	end for
+	do src :: lsrc.toArray()
+	
 	var jumpPos: []int :: #[^src]int
+	var reg: int :: 0
 	for n(0, ^src - 1)
-		if(src[n] = '[')
+		if(src[n] = "[")
 			var pos: int :: n
 			var m: int :: 0
 			while lpp(true)
 				if(pt >= ^src)
 					ret
 				end if
-				if(src[pos] = '[')
+				if(src[pos] = "[")
 					do m :+ 1
 				end if
-				if(src[pos] = ']')
+				if(src[pos] = "]")
 					do m :- 1
 				end if
 				if(m = 0)
@@ -43,17 +53,17 @@ func main()
 				end if
 				do pos :+ 1
 			end while
-		elif(src[n] = ']')
+		elif(src[n] = "]")
 			var pos: int :: n
 			var m: int :: 0
 			while lpp(true)
 				if(pt < 0)
 					ret
 				end if
-				if(src[pos] = '[')
+				if(src[pos] = "[")
 					do m :+ 1
 				end if
-				if(src[pos] = ']')
+				if(src[pos] = "]")
 					do m :- 1
 				end if
 				if(m = 0)
@@ -73,72 +83,114 @@ func main()
 			ret
 		end if
 		switch(src[pt])
-		case '>'
+		case ">"
 			do px :+ 1
 			if(px >= @num)
 				ret
 			end if
-		case '<'
+		case "<"
 			do px :- 1
 			if(px < 0)
 				ret
 			end if
-		case 'v'
+		case "v"
 			do py :+ 1
 			if(py >= @num)
 				ret
 			end if
-		case '^'
+		case "^"
 			do py :- 1
 			if(py < 0)
 				ret
 			end if
-		case '+'
+		case "+"
 			do mem[px][py] :+ 1
-		case '-'
+		case "-"
 			do mem[px][py] :- 1
-		case '.'
-			do draw@render(0)
-			do lib@sleep(12)
-
-			;do draw@render(60)
+		case "."
+			;do draw@render(0)
+			;do lib@sleep(12)
+			do draw@render(60)
 			;do cui@print("\{mem[px][py]}")
-		case ','
+		case ","
 			var key: []input@PadBtn :: [%down $ input@PadBtn, %up, %left, %right, %a, %b, %c, %d, %e, %f]
 			do mem[px][py] :: input@pad(0, key[mem[px][py]])
-		case '['
-			if(mem[px][py] = 0)
+		case "="
+			var n: int
+			var mode: int
+			if(src[pt + 1] = "g")
+				do mode :: 0
+				do n :: 2
+			else
+				do mode :: 1
+				do n :: 1
+			end if
+			var num: []char :: ""
+			while("-0123456789".findStr(src[pt + n], -1) > -1)
+				do num :: num ~ src[pt + n]
+				do n :+ 1
+				do pt :+ 1
+			end while
+			
+			if(mode = 0)
+				do reg :: num.toInt(&)
+			else
+				do mem[px][py] :: num.toInt(&)
+			end if
+			
+		case "["
+			if(reg = 0)
 				do pt :: jumpPos[pt] - 1
 			end if
-		case ']'
+		case "]"
 			do pt :: jumpPos[pt]
-		case 'e'
+		case "c"
+			do reg :: 0
+			if(src[pt + 1] = ">")
+				if(reg > mem[px][py])
+					do reg :: 1
+				end if
+			elif(src[pt + 1] = "<")
+				if(reg < mem[px][py])
+					do reg :: 1
+				end if
+			elif(src[pt + 1] = "=")
+				if(reg = mem[px][py])
+					do reg :: 0
+				end if
+			end if
+			do pt :+ 1
+		case "e"
 			ret
-		case 'o'
+		case "o"
 			if(mem[px][py] = 0)
 				do bgm@stop()
 			else
 				do bgm@play("res/mus/\{mem[px][py]}.ogg", 0.0)
 			end if
-		case 'p'
+		case "p"
 			var o: draw@Tex :: gra.get(mem[px][py], &)
 			do o.draw(mem[px + 1][py] $ float, mem[px + 2][py] $ float, 0.0, 0.0, o.imgWidth() $ float, o.imgHeight() $ float, draw@white)
-		case 'P'
+		case "P"
 			do gra.add(mem[px][py], draw@makeTex("res/img/\{mem[px][py]}.png"))
-		case 's'
+		case "s"
 			var o: snd@Snd :: snd.get(mem[px][py], &)
 			do o.setPos(0.0)
 			do o.play()
-		case 'S'
+		case "S"
 			do snd.add(mem[px][py], snd@makeSnd("res/img/\{mem[px][py]}.wav"))
-		case 'r'
+		case "r"
 			do px :: 0
 			do py :: 0
-		case 't'
+		case "t"
 			do mem[px][py] :+ 10
-		case 'h'
+		case "h"
 			do mem[px][py] :+ 100
-		case 'z'
+		case "T"
+			do mem[px][py] :- 10
+		case "H"
+			do mem[px][py] :- 100
+		case "z"
 			do mem[px][py] :: 0
 		default
 		end switch
