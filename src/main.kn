@@ -207,7 +207,7 @@ func main()
 				end if
 			end if
 			do pt :+ 1
-		case "V"
+		case "v"
 			do mem[px] :: st.get()
 		case ","
 			var key: []input@PadBtn :: [%down $ input@PadBtn, %up, %left, %right, %a, %b, %c, %d, %e, %f]
