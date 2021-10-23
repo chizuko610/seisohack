@@ -40,6 +40,7 @@ func main()
 				do lsrc.add(t.toStr())
 				do lsrc.add(num)
 				do cnt :+ p - 1
+				
 			else
 				do lsrc.add(srcc[cnt].toStr())
 				;do cui@print(srcc[cnt].toStr())
@@ -206,6 +207,8 @@ func main()
 				end if
 			end if
 			do pt :+ 1
+		case "V"
+			do mem[px] :: st.get()
 		case ","
 			var key: []input@PadBtn :: [%down $ input@PadBtn, %up, %left, %right, %a, %b, %c, %d, %e, %f]
 			do mem[px] :: input@pad(0, key[mem[px]])
