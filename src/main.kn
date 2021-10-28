@@ -1,7 +1,10 @@
-const num: int :: 5000
+const num: int :: 50000
 var drawMain: wnd@Draw
-const number: []char :: "0123456789"
 func main()
+	class Cmd()
+		+var cmd: []char
+		+var num: int
+	end class
 	var gra: dict<int, draw@Tex> :: #dict<int, draw@Tex>
 	var snd: dict<int, snd@Snd> :: #dict<int, snd@Snd>
 	do ogg@init()
@@ -13,58 +16,46 @@ func main()
 			do @drawMain.focus()
 		end if
 	end func
-	;do draw@clearColor(0xFF000000)
-	;do draw@autoClear(false)
 	do draw@sampler(%point)
 	do @drawMain.focus()
-	
 	var handle: file@Reader :: file@makeReader("res/start.txt")
 	do handle.delimiter("")
-	var srcc: []char :: handle.readStr().replace("\n", "").replace("\t", "")
+	var srcc: []char :: handle.readStr().replace("\n", "").replace("\t", "").replace("[-]", "z")
 	do handle.fin()
-	
-	var src: [][]char
-	var lsrc: list<[]char> :: #list<[]char>
+	var lsrc: list<Cmd> :: #list<Cmd>
 	var cnt: int :: 0
-	
 	while lp(cnt < ^srcc)
-		if(("+-[]><.,opPsSzr=^m{}" ~ @number).findStr(srcc[cnt].toStr(), -1) > -1)
-			var t: char :: srcc[cnt]
-			if(cnt + 1 < ^srcc & @number.findStr(srcc[cnt + 1].toStr(), -1) > -1)
-				var num: []char :: ""
-				var p: int :: 1
-				while(cnt + p < ^srcc & @number.findStr(srcc[cnt + p].toStr(), -1) > -1)
-					do num :: num ~ srcc[cnt + p].toStr()
-					do p :+ 1
-				end while
-				do lsrc.add(t.toStr())
-				do lsrc.add(num)
-				do cnt :+ p - 1
-				
-			else
-				do lsrc.add(srcc[cnt].toStr())
-				;do cui@print(srcc[cnt].toStr())
-			end if
+		var o: Cmd :: #Cmd
+		do o.cmd :: srcc[cnt].toStr()
+		if(o.cmd = "+" | o.cmd = "-" | o.cmd = "<" | o.cmd = ">" | o.cmd = ".")
+			var pcnt: int :: 0
+			while lp1(cnt + pcnt < ^srcc & srcc[cnt + pcnt].toStr() = o.cmd)
+				do pcnt :+ 1
+			end while
+			do o.num :: pcnt
+			do lsrc.add(o)
+			do cnt :+ pcnt - 1
+		else
+			do lsrc.add(o)
 		end if
 		do cnt :+ 1
 	end while
-	do src :: lsrc.toArray()
 	
+	var src: []Cmd :: lsrc.toArray()
 	var jumpPos: []int :: #[^src]int
+	
 	for n(0, ^src - 1)
-		;do cui@print("\{src[n]} ")
-		
-		if(src[n] = "[")
+		if(src[n].cmd = "[")
 			var pos: int :: n
 			var m: int :: 0
 			while lpp(true)
 				if(pt >= ^src)
 					ret
 				end if
-				if(src[pos] = "[")
+				if(src[pos].cmd = "[")
 					do m :+ 1
 				end if
-				if(src[pos] = "]")
+				if(src[pos].cmd = "]")
 					do m :- 1
 				end if
 				if(m = 0)
@@ -73,55 +64,17 @@ func main()
 				end if
 				do pos :+ 1
 			end while
-		elif(src[n] = "]")
+		elif(src[n].cmd = "]")
 			var pos: int :: n
 			var m: int :: 0
 			while lpp(true)
 				if(pt < 0)
 					ret
 				end if
-				if(src[pos] = "[")
+				if(src[pos].cmd = "]")
 					do m :+ 1
 				end if
-				if(src[pos] = "]")
-					do m :- 1
-				end if
-				if(m = 0)
-					do jumpPos[n] :: pos
-					break lpp
-				end if
-				do pos :- 1
-			end while
-		elif(src[n] = "{")
-			var pos: int :: n
-			var m: int :: 0
-			while lpp(true)
-				if(pt >= ^src)
-					ret
-				end if
-				if(src[pos] = "{")
-					do m :+ 1
-				end if
-				if(src[pos] = "}")
-					do m :- 1
-				end if
-				if(m = 0)
-					do jumpPos[n] :: pos
-					break lpp
-				end if
-				do pos :+ 1
-			end while
-		elif(src[n] = "}")
-			var pos: int :: n
-			var m: int :: 0
-			while lpp(true)
-				if(pt < 0)
-					ret
-				end if
-				if(src[pos] = "{")
-					do m :+ 1
-				end if
-				if(src[pos] = "}")
+				if(src[pos].cmd = "[")
 					do m :- 1
 				end if
 				if(m = 0)
@@ -133,118 +86,64 @@ func main()
 		end if
 	end for
 	var mem: []int :: #[@num]int
-	var px: int :: 0
+	var p: int :: 0
 	var pt: int :: 0
-	var tmp: int :: 0
-	var st: stack<int> :: #stack<int>
 	while lp(pt < ^src)
-		if(wnd@act() = false)
-			ret
-		end if
-		var nflg: bool :: false
-		var num: int :: 0
-		if(pt < ^src - 1)
-			if(@number.findStr(src[pt + 1][0].toStr(), -1) > -1)
-				do nflg :: true
-				do num :: src[pt + 1].toInt(&)
-			end if
-		end if
-		switch(src[pt])
+		switch(src[pt].cmd)
 		case ">"
-			do px :+ 1
-			if(px >= @num)
+			do p :+ src[pt].num
+			if(p >= @num)
 				ret
 			end if
 		case "<"
-			do px :- 1
-			if(px < 0)
+			do p :- src[pt].num
+			if(p < 0)
 				ret
 			end if
 		case "+"
-			if(nflg = true)
-				do mem[px] :+ num
-				do pt :+ 1
-			else
-				do mem[px] :+ 1
-			end if
+			do mem[p] :+ src[pt].num
 		case "-"
-			if(nflg = true)
-				do mem[px] :- num
-				do pt :+ 1
-			else
-				do mem[px] :- 1
-			end if
+			do mem[p] :- src[pt].num
 		case "."
 			do draw@render(60)
 			if(dbg = true)
-				do cui@print("\{mem[px]} ")
+				do cui@print("\{mem[p]} ")
 			end if
-		case "^"
-			if(nflg = true)
-				do st.add(num)
-			elif(src[pt + 1] = "m")
-				do st.add(mem[px])
-			elif(src[pt + 1] = ">")
-				var a1: int :: st.get()
-				if(mem[px] > a1)
-					do tmp :: 1
-				else
-					do tmp :: 0
+		case "@"
+			switch(mem[p])
+			case 0
+				if(wnd@act() = false)
+					ret
 				end if
-			elif(src[pt + 1] = "<")
-				var a1: int :: st.get()
-				if(mem[px] < a1)
-					do tmp :: 1
+			case 1
+				var o: draw@Tex :: gra.get(mem[p + 1], &)
+				do o.draw(mem[p + 2] $ float, mem[p + 3] $ float, 0.0, 0.0, o.imgWidth() $ float, o.imgHeight() $ float, draw@white)
+			case 2
+				var o: snd@Snd :: snd.get(mem[p + 1], &)
+				do o.setPos(0.0)
+				do o.play()
+			case 3
+				if(mem[p + 1] = 0)
+					do bgm@stop()
 				else
-					do tmp :: 0
+					do bgm@play("res/mus/\{mem[p + 1]}.ogg", 0.0)
 				end if
-			elif(src[pt + 1] = "=")
-				var a1: int :: st.get()
-				if(mem[px] = a1)
-					do tmp :: 1
-				else
-					do tmp :: 0
-				end if
-			end if
-			do pt :+ 1
-		case "v"
-			do mem[px] :: st.get()
+			case 4
+				do gra.add(mem[p + 1], draw@makeTex("res/img/\{mem[p + 1]}.png"))
+			case 5
+				do snd.add(mem[p + 1], snd@makeSnd("res/se/\{mem[p + 1]}.wav"))
+			end switch
 		case ","
 			var key: []input@PadBtn :: [%down $ input@PadBtn, %up, %left, %right, %a, %b, %c, %d, %e, %f]
-			do mem[px] :: input@pad(0, key[mem[px]])
+			do mem[p] :: input@pad(0, key[mem[p]])
 		case "["
-			if(mem[px] = 0)
-				do pt :: jumpPos[pt] - 1
+			if(mem[p] = 0)
+				do pt :: jumpPos[pt]
 			end if
 		case "]"
-			do pt :: jumpPos[pt]
-		case "{"
-			if(tmp = 0)
-				do pt :: jumpPos[pt] - 1
-			end if
-		case "}"
-		case "o"
-			if(mem[px] = 0)
-				do bgm@stop()
-			else
-				do bgm@play("res/mus/\{mem[px]}.ogg", 0.0)
-			end if
-		case "p"
-			var o: draw@Tex :: gra.get(mem[px], &)
-			do o.draw(mem[px + 1] $ float, mem[px + 2] $ float, 0.0, 0.0, o.imgWidth() $ float, o.imgHeight() $ float, draw@white)
-		case "P"
-			do gra.add(mem[px], draw@makeTex("res/img/\{mem[px]}.png"))
-		case "s"
-			var o: snd@Snd :: snd.get(mem[px], &)
-			do o.setPos(0.0)
-			do o.play()
-		case "S"
-			do snd.add(mem[px], snd@makeSnd("res/img/\{mem[px]}.wav"))
+			do pt :: jumpPos[pt] - 1
 		case "z"
-			do mem[px] :: 0
-		case "r"
-			do px :: 0
-		default
+			do mem[p] :: 0
 		end switch
 		do pt :+ 1
 	end while
